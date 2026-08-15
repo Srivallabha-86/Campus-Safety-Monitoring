@@ -1,12 +1,14 @@
 from datetime import datetime
-from severity import calculate_severity
+
+from severity import calculate_event_severity
 from models import SafetyEvent
 from rules import (
+    is_after_hours,
     restricted_entry_rule,
     temperature_rule,
     extreme_temperature_rule,
     door_open_rule,
-    motion_detected_rule
+    motion_detected_rule,
 )
 
 
@@ -16,103 +18,137 @@ def process_observation(
     door_open: bool,
     motion_detected: bool,
     location: str,
-    current_hour: int,
-    temperature: float
+    temperature: float,
 ) -> list[SafetyEvent]:
 
     events = []
 
+    # Get the actual current timestamp.
+    timestamp = datetime.now()
+
+    # Extract the actual current hour.
+    current_hour = timestamp.hour
+
+    # Determine whether it is after hours.
+    after_hours = is_after_hours(current_hour)
+
+    # 1. Restricted entry
     if restricted_entry_rule(
         person_detected,
         restricted_zone,
-        current_hour
+        current_hour,
     ):
+        severity = calculate_event_severity(
+            event_type="restricted_entry",
+            temperature=temperature,
+            person_detected=person_detected,
+            restricted_zone=restricted_zone,
+            after_hours=after_hours,
+        )
+
         events.append(
             SafetyEvent(
                 event_type="restricted_entry",
                 location=location,
-                severity=calculate_severity(
-                    person_detected=person_detected,
-                    door_open=door_open,
-                    motion_detected=motion_detected,
-                    restricted_zone=restricted_zone,
-                    after_hours=True,
-                    temperature=temperature
+                severity=severity,
+                timestamp=timestamp,
+                description=(
+                    "Person detected in restricted zone "
+                    "after hours"
                 ),
-                timestamp=datetime.now(),
-                description="Person detected in restricted zone"
             )
         )
 
+    # 2. High temperature
     if temperature_rule(temperature):
+        severity = calculate_event_severity(
+            event_type="high_temperature",
+            temperature=temperature,
+            person_detected=person_detected,
+            restricted_zone=restricted_zone,
+            after_hours=after_hours,
+        )
+
         events.append(
             SafetyEvent(
                 event_type="high_temperature",
                 location=location,
-                severity=calculate_severity(
-                    person_detected=person_detected,
-                    door_open=door_open,
-                    motion_detected=motion_detected,
-                    restricted_zone=restricted_zone,
-                    after_hours=True,
-                    temperature=temperature
-                ),
-                timestamp=datetime.now(),
-                description=f"High temperature detected: {temperature}°C"
+                severity=severity,
+                timestamp=timestamp,
+                description=f"High temperature detected: {temperature}°C",
             )
         )
 
+    # 3. Extreme temperature
     if extreme_temperature_rule(temperature):
+        severity = calculate_event_severity(
+            event_type="extreme_temperature",
+            temperature=temperature,
+            person_detected=person_detected,
+            restricted_zone=restricted_zone,
+            after_hours=after_hours,
+        )
+
         events.append(
             SafetyEvent(
                 event_type="extreme_temperature",
                 location=location,
-                severity=calculate_severity(
-                    person_detected=person_detected,
-                    door_open=door_open,
-                    motion_detected=motion_detected,
-                    restricted_zone=restricted_zone,
-                    after_hours=True,
-                    temperature=temperature
-                ),
-                timestamp=datetime.now(),
-                description=f"Extreme temperature detected: {temperature}°C"
+                severity=severity,
+                timestamp=timestamp,
+                description=f"Extreme temperature detected: {temperature}°C",
             )
         )
 
-    if door_open_rule(door_open, current_hour):
+    # 4. Door opened after hours
+    if door_open_rule(
+        door_open,
+        current_hour,
+    ):
+        severity = calculate_event_severity(
+            event_type="door_open_after_hours",
+            temperature=temperature,
+            person_detected=person_detected,
+            restricted_zone=restricted_zone,
+            after_hours=after_hours,
+        )
+
         events.append(
             SafetyEvent(
                 event_type="door_open_after_hours",
                 location=location,
-                severity=calculate_severity(
-                    person_detected=person_detected,
-                    door_open=door_open,
-                    motion_detected=motion_detected,
-                    restricted_zone=restricted_zone,
-                    after_hours=True,
-                    temperature=temperature
+                severity=severity,
+                timestamp=timestamp,
+                description=(
+                    f"Door opened after hours "
+                    f"at {current_hour}:00"
                 ),
-                timestamp=datetime.now(),
-                description=f"Door opened after hours {current_hour}"
             )
         )
 
-    if motion_detected_rule(motion_detected, current_hour):
+    # 5. Motion detected in restricted zone after hours
+    if motion_detected_rule(
+        motion_detected,
+        restricted_zone,
+        current_hour,
+    ):
+        severity = calculate_event_severity(
+            event_type="motion_detected",
+            temperature=temperature,
+            person_detected=person_detected,
+            restricted_zone=restricted_zone,
+            after_hours=after_hours,
+        )
+
         events.append(
             SafetyEvent(
                 event_type="motion_detected",
                 location=location,
-                severity=calculate_severity(
-                    person_detected=person_detected,
-                    door_open=door_open,
-                    motion_detected=motion_detected,
-                    restricted_zone=restricted_zone,
-                    after_hours=True,
-                    temperature=temperature
+                severity=severity,
+                timestamp=timestamp,
+                description=(
+                    "Motion detected in restricted zone "
+                    f"after hours at {current_hour}:00"
                 ),
-                timestamp=datetime.now(),
-                description=f"Motion detected after hours {current_hour}"
             )
         )
 

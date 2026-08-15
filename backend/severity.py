@@ -1,35 +1,29 @@
-def calculate_severity(
+def calculate_event_severity(
+    event_type: str,
+    temperature: float,
     person_detected: bool,
-    door_open: bool,
-    motion_detected: bool,
     restricted_zone: bool,
     after_hours: bool,
-    temperature: float
 ) -> str:
 
-    if (
-        person_detected
-        and restricted_zone
-        and after_hours
-    ):
-        return "CRITICAL"
+    if event_type == "restricted_entry":
+        if person_detected and restricted_zone and after_hours:
+            return "CRITICAL"
 
-    if (
-        door_open
-        and after_hours
-    ):
-        return "HIGH"
+    if event_type == "extreme_temperature":
+        if temperature >= 50:
+            return "CRITICAL"
 
-    if (
-        motion_detected
-        and after_hours
-    ):
-        return "CRITICAL"
+    if event_type == "high_temperature":
+        if 38 <= temperature < 50:
+            return "HIGH"
 
-    if temperature >= 50:
-        return "CRITICAL"
+    if event_type == "door_open_after_hours":
+        if after_hours:
+            return "HIGH"
 
-    if temperature >= 38 and temperature < 50:
-        return "HIGH"
+    if event_type == "motion_detected":
+        if restricted_zone and after_hours:
+            return "HIGH"
 
     return "LOW"

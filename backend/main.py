@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from event_engine import process_observation
 
 
@@ -8,19 +6,20 @@ def main():
     events = process_observation(
         person_detected=True,
         restricted_zone=True,
-        location="Chemistry Lab",
-        current_hour=datetime.now().hour,
-        temperature=28,
         door_open=True,
-        motion_detected=True
+        motion_detected=True,
+        location="Chemistry Lab",
+        temperature=42,
     )
 
     if not events:
         print("No safety events detected.")
         return
 
+    print(f"\n{len(events)} safety event(s) detected.")
+
     for event in events:
-        print("\n🚨 SAFETY ALERT")
+        print("\n🚨 SAFETY EVENT")
         print(f"Type: {event.event_type}")
         print(f"Location: {event.location}")
         print(f"Severity: {event.severity}")
