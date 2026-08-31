@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from severity import calculate_event_severity
-from models import SafetyEvent
-from rules import (
+from backend.severity import calculate_event_severity
+from backend.models import SafetyEvent
+from backend.rules import (
     is_after_hours,
     restricted_entry_rule,
     temperature_rule,
