@@ -1,7 +1,11 @@
-from event_engine import process_observation
+from backend.event_engine import process_observation
+from backend.database import create_database
 
 
 def main():
+
+    # Initialize SQLite database.
+    create_database()
 
     events = process_observation(
         person_detected=True,

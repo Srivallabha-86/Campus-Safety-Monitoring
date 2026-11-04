@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from backend.database import insert_event
 from backend.severity import calculate_event_severity
 from backend.models import SafetyEvent
 from backend.rules import (
@@ -151,5 +152,9 @@ def process_observation(
                 ),
             )
         )
+
+    # Save generated events to SQLite.
+    for event in events:
+        insert_event(event)
 
     return events
