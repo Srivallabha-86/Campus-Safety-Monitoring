@@ -288,6 +288,12 @@ elif section == "Detections":
                 "Open the Alerts or History section "
                 "to inspect incidents stored in SQLite."
             )
+            st.metric("Bag Detections", processor.detected_bags)
+
+            st.metric(
+               "Unique Bag Tracks",
+                len(processor.bag_tracks_seen),
+            )
 
 
 

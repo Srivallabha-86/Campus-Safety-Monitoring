@@ -38,6 +38,8 @@ class VideoEventProcessor:
 
         self.zone_entries = 0
         self.unattended_bags = 0
+        self.detected_bags = 0
+        self.bag_tracks_seen = set() 
 
     def process_result(self, result, video_seconds):
 
@@ -121,6 +123,8 @@ class VideoEventProcessor:
                             )
 
                 elif class_id in BAG_CLASSES:
+                    self.detected_bags += 1
+                    self.bag_tracks_seen.add(track_id)
 
                     bags.append(
                         (
