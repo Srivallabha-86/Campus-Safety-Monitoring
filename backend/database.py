@@ -50,3 +50,23 @@ def insert_event(event: SafetyEvent):
 
     connection.commit()
     connection.close()
+
+
+def get_all_events():
+    connection = sqlite3.connect(DATABASE_NAME)
+
+    connection.row_factory = sqlite3.Row
+
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        SELECT *
+        FROM events
+        ORDER BY id DESC
+    """)
+
+    events = cursor.fetchall()
+
+    connection.close()
+
+    return [dict(event) for event in events]
