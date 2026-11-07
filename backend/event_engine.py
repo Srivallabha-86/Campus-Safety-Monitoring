@@ -158,3 +158,27 @@ def process_observation(
         insert_event(event)
 
     return events
+
+def record_visual_event(
+    event_type: str,
+    location: str,
+    severity: str,
+    description: str,
+):
+    """
+    Store a computer-vision-generated incident in SQLite.
+    """
+
+    timestamp = datetime.now()
+
+    event = SafetyEvent(
+        event_type=event_type,
+        location=location,
+        severity=severity,
+        timestamp=timestamp,
+        description=description,
+    )
+
+    insert_event(event)
+
+    return event

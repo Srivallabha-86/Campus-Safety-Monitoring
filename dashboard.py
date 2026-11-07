@@ -8,6 +8,7 @@ from pathlib import Path
 from ultralytics import YOLO
 
 from backend.database import get_all_events
+from backend.video_monitor import VideoEventProcessor
 
 # Page Setup
 st.set_page_config(
@@ -143,9 +144,12 @@ if section == "Live Feed":
 # 2. DETECTIONS
 # ---------------------------------------------------------
 elif section == "Detections":
-    st.subheader("🔍 YOLO11n + ByteTrack Detection")
+
+    st.subheader("YOLO11n + ByteTrack + Safety Monitoring")
+
     st.caption(
-        "Person detection and tracking using the prerecorded video dataset."
+        "Person tracking, restricted-zone monitoring "
+        "and potential unattended baggage detection."
     )
 
     video_path = Path("videos/people-walking.mp4")
@@ -155,107 +159,136 @@ elif section == "Detections":
         return YOLO("yolo11n.pt")
 
     if not video_path.exists():
+
         st.error("Detection video not found.")
+
     else:
+
         st.write("Source: people-walking.mp4")
         st.write("Model: YOLO11n")
         st.write("Tracker: ByteTrack")
+        st.write("Zone: Right-hand demonstration area")
 
-        if st.button("▶ Run Detection", type="primary"):
+        if st.button("Run Complete Detection", type="primary"):
+
             model = load_detection_model()
+
+            processor = VideoEventProcessor(
+                location="Right-side demonstration zone",
+                stationary_seconds=10,
+            )
+
+            capture = cv2.VideoCapture(str(video_path))
+
+            total_frames = int(
+                capture.get(cv2.CAP_PROP_FRAME_COUNT)
+            )
+
+            fps = capture.get(cv2.CAP_PROP_FPS)
+
+            capture.release()
+
+            if not fps or fps <= 0:
+                fps = 25.0
 
             detection_placeholder = st.empty()
             progress_bar = st.progress(0)
 
-            tracked_people = {}
             frame_count = 0
-
-            total_frames = 341
 
             results = model.track(
                 source=str(video_path),
                 stream=True,
                 persist=True,
                 tracker="bytetrack_custom.yaml",
-                classes=[0],
                 conf=0.3,
                 iou=0.5,
-                verbose=False
+                imgsz=640,
+                verbose=False,
             )
 
             for result in results:
+
                 frame_count += 1
 
-                boxes = result.boxes
+                video_seconds = frame_count / fps
 
-                if boxes is not None and boxes.id is not None:
-                    track_ids = boxes.id.int().cpu().tolist()
-                    confidences = boxes.conf.cpu().tolist()
-
-                    for track_id, confidence in zip(
-                        track_ids, confidences
-                    ):
-                        if track_id not in tracked_people:
-                            tracked_people[track_id] = {
-                                "Track ID": track_id,
-                                "Class": "Person",
-                                "Confidence": confidence,
-                                "Frames Tracked": 0
-                            }
-
-                        tracked_people[track_id][
-                            "Confidence"
-                        ] = confidence
-
-                        tracked_people[track_id][
-                            "Frames Tracked"
-                        ] += 1
-
-                annotated_frame = result.plot()
+                annotated_frame = processor.process_result(
+                    result,
+                    video_seconds,
+                )
 
                 frame_rgb = cv2.cvtColor(
                     annotated_frame,
-                    cv2.COLOR_BGR2RGB
+                    cv2.COLOR_BGR2RGB,
                 )
 
                 detection_placeholder.image(
                     frame_rgb,
                     channels="RGB",
-                    use_container_width=True
+                    use_container_width=True,
                 )
 
-                progress_bar.progress(
-                    min(frame_count / total_frames, 1.0)
-                )
+                if total_frames > 0:
+                    progress_bar.progress(
+                        min(frame_count / total_frames, 1.0)
+                    )
 
             progress_bar.progress(1.0)
+
             st.success(
-                f"Detection completed! {frame_count} frames processed."
+                f"Detection completed! "
+                f"{frame_count} frames processed."
             )
 
-            if tracked_people:
+            col1, col2, col3 = st.columns(3)
+
+            col1.metric(
+                "Unique Person Tracks",
+                len(processor.tracked_people),
+            )
+
+            col2.metric(
+                "Restricted-Zone Entries",
+                processor.zone_entries,
+            )
+
+            col3.metric(
+                "Unattended Baggage Alerts",
+                processor.unattended_bags,
+            )
+
+            if processor.tracked_people:
+
                 df_detections = pd.DataFrame(
-                    list(tracked_people.values())
+                    list(processor.tracked_people.values())
                 )
 
                 df_detections["Confidence"] = (
                     df_detections["Confidence"] * 100
                 ).round(2).astype(str) + "%"
 
-                st.metric(
-                    "Unique Person Tracks",
-                    len(tracked_people)
-                )
-
-                st.markdown("### Tracking Results")
+                st.markdown("### Person Tracking Results")
 
                 st.dataframe(
                     df_detections,
                     use_container_width=True,
-                    hide_index=True
+                    hide_index=True,
                 )
-            else:
-                st.warning("No people were detected in the video.")
+
+            st.info(
+                "Restricted-entry incidents are stored only "
+                "during the configured after-hours period. "
+                "Potential unattended baggage incidents are "
+                "stored when the stationary-object conditions "
+                "are met."
+            )
+
+            st.markdown(
+                "Open the Alerts or History section "
+                "to inspect incidents stored in SQLite."
+            )
+
 
 
 
