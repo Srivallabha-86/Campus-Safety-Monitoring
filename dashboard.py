@@ -148,10 +148,10 @@ elif section == "Detections":
     st.subheader("YOLO11n + ByteTrack + Safety Monitoring")
 
     st.caption(
-        "Person tracking, restricted-zone monitoring "
-        "and potential unattended baggage detection."
+      "Person tracking, restricted-zone monitoring"
+      "and potential unattended baggage detection"
     )
-
+    
     video_path = Path("videos/people-walking.mp4")
 
     @st.cache_resource

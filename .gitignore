@@ -3,3 +3,17 @@ __pycache__/
 *.pyc
 .env
 campus_safety.db
+# Training datasets and generated outputs
+datasets/
+runs/
+reports/
+videos/dfire_samples/
+
+# Model weights and checkpoints
+models/fire_smoke/
+*.pt
+*.onnx
+
+# Generated evaluation artifacts
+*.csv
+*.log
